@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "nekosthief"
+version = "0.2.0"
+description = "Thief of cute cat girls"
+authors = ["Igor Tolmachov <me@igorek.dev>"]
+license = "GPL-3.0-only"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+aiohttp = "^3.8.3"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^0.991"
+black = "^22.12.0"
+isort = "^5.11.4"
+
+
+[tool.mypy]
+ignore_missing_imports = true
+disallow_untyped_defs = true
+disallow_untyped_calls = true
+
+
+[tool.isort]
+profile = "black"
