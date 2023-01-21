@@ -1,5 +1,5 @@
 import asyncio
-from os import mkdir
+from os import mkdir, remove
 from os.path import exists, join
 from typing import Generator
 
@@ -8,13 +8,13 @@ import aiohttp
 
 async def get_file_names(
     client: aiohttp.ClientSession,
-) -> dict[str, Generator[str, None, None]]:
+) -> dict[str, list[str]]:
     async with client.get("https://nekos.best/api/v2/endpoints") as response:
         return {
-            tag: (
+            tag: [
                 "{:0>{}}.{}".format(n, len(data["min"]), data["format"])
-                for n in range(int(data["min"]), int(data["max"]))
-            )
+                for n in range(int(data["min"]), int(data["max"]) + 1)
+            ]
             for tag, data in (await response.json()).items()
         }
 
@@ -27,11 +27,19 @@ async def download(
 ) -> None:
     file_path = join(dir, file)
     if not exists(file_path):
-        async with client.get(f"{url}/{file}") as response:
-            with open(file_path, "wb") as write:
-                async for chunk in response.content.iter_chunked(1024):
-                    write.write(chunk)
-        print(f"File downloaded {url}/{file}")
+        while True:
+            try:
+                async with client.get(f"{url}/{file}") as response:
+                    with open(file_path, "wb") as write:
+                        async for chunk in response.content.iter_chunked(1024):
+                            write.write(chunk)
+                print(f"File downloaded {url}/{file}")
+            except Exception:
+                print(f"ERROR {url}/{file}")
+            except KeyboardInterrupt:
+                remove(file_path)
+            else:
+                break
     else:
         print(f"File skipped {url}/{file}")
 
@@ -44,7 +52,11 @@ async def main() -> None:
     tasks = []
 
     async with aiohttp.ClientSession() as client:
-        for tag, files in (await get_file_names(client)).items():
+        print("Getting endpoints ...")
+        endpoints = await get_file_names(client)
+
+        print("Start downloading")
+        for tag, files in endpoints.items():
             tag_dir = join(download_dir, tag)
             if not exists(tag_dir):
                 mkdir(tag_dir)
